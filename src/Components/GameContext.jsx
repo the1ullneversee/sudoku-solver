@@ -5,7 +5,7 @@ export const GameContext = createContext();
 export const GameContextProvider = ({children}) => {
     const [userName, setUserName] = useState("");
     const [gameHistory, setGameHistory] = useState("");
-    const [difficulty, setDifficulty] = useState("");
+    const [difficulty, setDifficulty] = useState(null);
 
     return (
         <GameContext.Provider value={{

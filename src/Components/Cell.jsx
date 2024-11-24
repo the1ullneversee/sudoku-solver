@@ -1,34 +1,42 @@
 import React, {useState, useEffect} from "react";
 import { Input } from "@/components/ui/input"
 
-export default function Cell(props) {
-    const [value, setValue] = useState(props.value ? props.value : "");
-    const [cellColour, setCellColour] = useState("");
-    const [isLocked, setIsLocked] = useState(false);
+export default function Cell({cell, onChange}) {
+    const [value, setValue] = useState(cell.value);
+    const [cellColour, setCellColour] = useState(cell.cellColour);
+    const [isLocked, setIsLocked] = useState(cell.isLocked);
 
-    function verifyCellValue(inputValue) {
-        console.log(inputValue);
-        if (inputValue > 0 && inputValue < 10){
-            setIsLocked(true);
-            setCellColour("grey");
-            return true;
-        }
-        else {
-            setIsLocked(false);
-            setCellColour("red");
-            return false;
-        }
-    }
+    const handleChange = (e) => {
+        const newValue = e.target.value;
 
-    function handleInputChange(e) {
-        if (verifyCellValue(e.target.value)) {
-            setValue(e.target.value);
+        // Handle empty/backspace case first
+        if (newValue === "") {
+            setValue("");
+            onChange({ target: { value: null }});
+            return;
         }
-    }
+
+        if (newValue.length < 1) return;
+
+        const numValue = parseInt(newValue);
+        if (!isNaN(numValue) && numValue >= 1 && numValue <= 9) {
+            console.log("Valid input");
+            setValue(numValue);
+            onChange({ target: { value: numValue } });
+        }
+    };
+
+    useEffect(() => {
+
+        setValue(cell.value);
+        setCellColour(cell.cellColour);
+        setIsLocked(cell.isLocked);
+        console.log(`Setting cell with ${value} ${cellColour} ${isLocked}`);
+    }, [cell])
 
     return (
         <div className="App">
-            <Input value={value} onChange={handleInputChange} className="w-[40px] h-[40px] aspect-square text-center p-0"  />
+            <Input value={value} onChange={!isLocked ? handleChange : null} className="w-[40px] h-[40px] aspect-square text-center p-0" style={{backgroundColor: cellColour}} readOnly={isLocked}/>
         </div>
     )
 }

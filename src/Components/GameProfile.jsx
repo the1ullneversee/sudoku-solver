@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function GameProfile() {
     const {userName, setUserName, difficulty, setDifficulty} = useContext(GameContext);
+    const [localUserName, setLocalUserName] = useState(userName);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -46,16 +47,21 @@ export default function GameProfile() {
                 <CardContent>
                     <form>
                         <div className="grid w-full items-center gap-4">
+                            {userName === "" ? (
+                                <div className="flex flex-col space-y-1.5">
+                                    <Label htmlFor="userName">Username</Label>
+                                    <Input id="userName" placeholder="Your username" value={localUserName} onChange={(e) => setLocalUserName(e.target.value)} />
+                                </div>
+                            ): (
+                                <div className="flex flex-col space-y-1.5">
+                                    <p>Hi, {userName}</p>
+                                </div>
+                            )}
+
                             <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="userName">Username</Label>
-                                <Input id="userName" placeholder="Your username" value={userName}
-                                       onChange={(e) => setUserName(e.target.value)}/>
-                            </div>
-                            <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="difficulty">Difficulty</Label>
                                 <Select value={difficulty} onValueChange={setDifficulty}>
                                     <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Easy 🌱"/>
+                                    <SelectValue placeholder="Easy 🌱"/>
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="Easy 🌱">🌱 Easy</SelectItem>
@@ -64,19 +70,23 @@ export default function GameProfile() {
                                         <SelectItem value="Expert 👑">👑 Expert</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <Button
+                                    onClick={async () => {
+                                        setUserName(localUserName);  // If setUserName returns a Promise
+                                        navigate('/board', {
+                                            state: { difficulty: difficulty }
+                                        });
+                                    }}
+                                >
+                                    Start {difficulty} Game
+                                </Button>
                             </div>
                         </div>
                     </form>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                    <Button
-                        onClick={() => navigate('/board', {
-                            state: {difficulty: difficulty}
-                        })}
-                    >
-                        Start {difficulty} Game
-                    </Button>
-                </CardFooter>
+                {/*<CardFooter className="flex justify-between">*/}
+                {/*    */}
+                {/*</CardFooter>*/}
             </Card>
         </div>
     )
