@@ -1,5 +1,4 @@
 import React, {useState, useEffect} from "react";
-import { Input } from "@/components/ui/input"
 
 export default function Cell({cell, onChange}) {
     const [value, setValue] = useState(cell.value);
@@ -36,7 +35,8 @@ export default function Cell({cell, onChange}) {
 
     return (
         <div className="App">
-            <Input value={value} onChange={!isLocked ? handleChange : null} className="w-[40px] h-[40px] aspect-square text-center p-0" style={{backgroundColor: cellColour}} readOnly={isLocked}/>
+            <input className={`w-full h-[40px] text-center focus:outline-none focus:bg-primary/10 ${cell.isLocked ? 'bg-base-200 font-semibold' : 'bg-base-100'}`} value={value}
+                   onChange={!isLocked ? handleChange : null} readOnly={isLocked}/>
         </div>
     )
 }

@@ -1,21 +1,7 @@
 import React, {useState, useContext, useEffect} from "react";
-import {Link, Links} from "react-router-dom";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter} from "@/components/ui/card"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {Label} from "@radix-ui/react-label";
-import { Input } from "@/components/ui/input"
-import {Button} from "@/components/ui/button"
+import {useNavigate} from 'react-router-dom';
 import {GameContext} from "@/Components/GameContext.jsx";
 import Logo from "@/assets/Logo.svg";
-import { useNavigate } from 'react-router-dom';
-
-
 
 export default function GameProfile() {
     const {userName, setUserName, difficulty, setDifficulty} = useContext(GameContext);
@@ -23,71 +9,85 @@ export default function GameProfile() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (difficulty === null){
+        if (difficulty === null) {
             setDifficulty("Easy 🌱")
         }
     }, [])
 
-    return (
-        <div className="flex min-h-screen items-center justify-center">
-            <Card className="w-full max-w-md shadow-lg">
-                <CardHeader className="text-center space-y-4 pb-2">
-                    <div className="mx-auto w-32 h-32">
-                        <img
-                            src={Logo}
-                            className="w-full h-full object-contain"
-                            alt="Sudoku logo"
-                        />
-                    </div>
-                    <CardTitle className="text-2xl font-bold">Sudoku</CardTitle>
-                    <CardDescription className="text-sm text-gray-500">
-                        Start a new game or continue where you left off
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form>
-                        <div className="grid w-full items-center gap-4">
-                            {userName === "" ? (
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label htmlFor="userName">Username</Label>
-                                    <Input id="userName" placeholder="Your username" value={localUserName} onChange={(e) => setLocalUserName(e.target.value)} />
-                                </div>
-                            ): (
-                                <div className="flex flex-col space-y-1.5">
-                                    <p>Hi, {userName}</p>
-                                </div>
-                            )}
+    const handleSubmit = (e) => {
+        e.preventDefault(); // Prevent form submission from refreshing the page
+        setUserName(localUserName);
+        navigate('/board', {
+            state: { difficulty: difficulty }
+        });
+    };
 
-                            <div className="flex flex-col space-y-1.5">
-                                <Select value={difficulty} onValueChange={setDifficulty}>
-                                    <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Easy 🌱"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Easy 🌱">🌱 Easy</SelectItem>
-                                        <SelectItem value="Medium 🌟">🌟 Medium</SelectItem>
-                                        <SelectItem value="Hard 🔥">🔥 Hard</SelectItem>
-                                        <SelectItem value="Expert 👑">👑 Expert</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Button
-                                    onClick={async () => {
-                                        setUserName(localUserName);  // If setUserName returns a Promise
-                                        navigate('/board', {
-                                            state: { difficulty: difficulty }
-                                        });
-                                    }}
-                                >
-                                    Start {difficulty} Game
-                                </Button>
-                            </div>
+    return (
+        // Using DaisyUI's container class for proper centering
+        <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+            <div className="card w-96 bg-base-100 shadow-xl">
+                <div className="card-body">
+                    {/* Logo Section */}
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-32 h-32">
+                            <img
+                                src={Logo}
+                                className="w-full h-full object-contain"
+                                alt="Sudoku logo"
+                            />
                         </div>
+                        <h2 className="card-title text-2xl font-bold">Sudoku</h2>
+                        <p className="text-sm text-base-content/70">
+                            Start a new game or continue where you left off
+                        </p>
+                    </div>
+
+                    {/* Form Section */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {userName === "" ? (
+                            <div className="form-control w-full">
+                                <label className="label">
+                                    <span className="label-text">Username</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    className="input input-bordered w-full"
+                                    placeholder="Your username"
+                                    value={localUserName}
+                                    onChange={(e) => setLocalUserName(e.target.value)}
+                                />
+                            </div>
+                        ) : (
+                            <div className="text-center text-lg font-medium">
+                                Hi, {userName}!
+                            </div>
+                        )}
+
+                        <div className="form-control w-full">
+                            <label className="label">
+                                <span className="label-text">Difficulty</span>
+                            </label>
+                            <select
+                                className="select select-bordered w-full"
+                                value={difficulty}
+                                onChange={(e) => setDifficulty(e.target.value)}
+                            >
+                                <option value="Easy 🌱">🌱 Easy</option>
+                                <option value="Medium 🌟">🌟 Medium</option>
+                                <option value="Hard 🔥">🔥 Hard</option>
+                                <option value="Expert 👑">👑 Expert</option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="btn btn-primary w-full"
+                        >
+                            Start {difficulty} Game
+                        </button>
                     </form>
-                </CardContent>
-                {/*<CardFooter className="flex justify-between">*/}
-                {/*    */}
-                {/*</CardFooter>*/}
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

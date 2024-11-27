@@ -1,15 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react';
 import Cell from './Cell';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableRow
-} from "@/components/ui/table"
-import {Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {Button} from "@/Components/ui/button"
-import {Play, Pause, Cake} from "lucide-react";
+import {Play, Pause, Cake, Home} from "lucide-react";
 import {GameContext} from "@/Components/GameContext.jsx";
 import {useNavigate} from "react-router-dom";
 
@@ -207,16 +198,14 @@ export default function Board() {
     }
     // Helper function to determine cell border classes
     const getCellBorderClasses = (rowIndex, colIndex) => {
-        let classes = "border border-slate-200 ";
+        let classes = "border border-base-300 ";
 
-        // Add thicker bottom border for every 3rd row
         if ((rowIndex + 1) % 3 === 0 && rowIndex < 8) {
-            classes += "border-b-2 border-b-slate-400 ";
+            classes += "border-b-2 border-b-base-content/30 ";
         }
 
-        // Add thicker right border for every 3rd column
         if ((colIndex + 1) % 3 === 0 && colIndex < 8) {
-            classes += "border-r-2 border-r-slate-400 ";
+            classes += "border-r-2 border-r-base-content/30 ";
         }
 
         return classes;
@@ -224,60 +213,86 @@ export default function Board() {
 
 
     return (
-        <div className="App">
-            <Card>
-                <CardHeader className="space-y-1">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold">Sudoku {difficulty}</h3>
-                        <span><Button onClick={() => {navigate('/')}}>Home</Button></span>
-                        <Badge color="white">
-                            <Button
-                               variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 p-0 hover:bg-transparent"
-                                onClick={setRunning}
-                            >
-                                {isRunning ? (
-                                    <Pause className="" />
-                                ) : (
-                                    <Play className="" />
-                                )}
-                            </Button>
-                            <span className="font-mono text-sm">{elapsedTime}</span>
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table className="border-2 border-slate-100">
-                        <TableBody>
-                            {board?.map((row, rowIndex) => (
-                                <TableRow key={rowIndex} className="border-slate-200">
-                                    {row.map((cellValue, colIndex) => (
-                                        <TableCell key={`${rowIndex}-${colIndex}`} className={`p-0 ${getCellBorderClasses(rowIndex, colIndex)}`}>
-                                            <Cell
-                                                cell={board[rowIndex][colIndex]}
-                                                onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                            />
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-                <CardFooter>
-                    <div className="min-h-[60px]">
-                        {boardComplete ? (
-                            <div className="flex flex-col items-center gap-2">
-                                <Cake />
-                                <div>
-                                    Congratulations, you solved it in {elapsedTime}!
-                                </div>
+        <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+            <div className="card bg-base-100 shadow-xl w-full max-w-2xl">
+                {/* Header Section */}
+                <div className="card-body p-0">
+                    <div className="border-b border-base-300 p-4">
+                        <div className="flex items-center justify-between">
+                            {/* Game Title and Difficulty */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="btn btn-ghost btn-sm"
+                                >
+                                    <Home className="w-4 h-4" />
+                                </button>
+                                <h3 className="text-lg font-semibold">
+                                    Sudoku <span className="text-primary">{difficulty}</span>
+                                </h3>
                             </div>
-                        ) : null}
+
+                            {/* Timer Controls */}
+                            <div className="flex items-center gap-2 bg-base-200 rounded-lg px-3 py-1">
+                                <button
+                                    onClick={setRunning}
+                                    className="btn btn-ghost btn-sm btn-square"
+                                >
+                                    {isRunning ? (
+                                        <Pause className="w-4 h-4" />
+                                    ) : (
+                                        <Play className="w-4 h-4" />
+                                    )}
+                                </button>
+                                <span className="font-mono text-sm">{elapsedTime}</span>
+                            </div>
+                        </div>
                     </div>
-                </CardFooter>
-            </Card>
+
+                    {/* Game Board Section */}
+                    <div className="p-4">
+                        <div className="overflow-x-auto">
+                            <table className="w-full border-collapse bg-base-100">
+                                <tbody>
+                                {board?.map((row, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {row.map((cellValue, colIndex) => (
+                                            <td
+                                                key={`${rowIndex}-${colIndex}`}
+                                                className={`p-0 relative ${getCellBorderClasses(rowIndex, colIndex)}`}
+                                                style={{
+                                                    aspectRatio: '1/1',
+                                                    width: '11.11%' // 100% / 9 cells
+                                                }}
+                                            >
+                                                <Cell
+                                                    cell={board[rowIndex][colIndex]}
+                                                    onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                                />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Footer Section - Completion Message */}
+                    <div className="border-t border-base-300 p-4">
+                        <div className="min-h-[60px] flex justify-center">
+                            {boardComplete && (
+                                <div className="flex flex-col items-center gap-2 text-success">
+                                    <Cake className="w-6 h-6" />
+                                    <p className="text-center font-medium">
+                                        Congratulations! You solved it in {elapsedTime}! 🎉
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    )
+    );
 }
