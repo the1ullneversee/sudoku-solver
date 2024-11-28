@@ -5,7 +5,7 @@ import {GameContext} from "@/Components/GameContext.jsx";
 import {useNavigate} from "react-router-dom";
 
 export default function Board() {
-    const {difficulty} = useContext(GameContext);
+    const {difficulty, userName} = useContext(GameContext);
     const [board, setBoard] = useState([]);
     const [timer, setTimer] = useState(0);
     const [elapsedTime, setElapsedTime] = useState('00:00');
@@ -15,6 +15,18 @@ export default function Board() {
     const [cellCols, setCellCols] = useState([]);
     const [cellBlocks, setCellBlocks] = useState([]);
     const [boardComplete, setBoardComplete] = useState(false);
+    const [numbersLeft, setNumbersLeft] = useState({});
+    const [numberSelected, setNumberSelected] = useState(new Set());
+
+    const toggleSelect = (num) => {
+        if (numberSelected !== num) {
+            setNumberSelected(num);
+        } else {
+            setNumberSelected(null);
+        }
+        console.log(`number selected is ${num}`)
+    };
+
     // const samplePuzzle = [
     //     [5, 3, 0, 0, 7, 0, 0, 0, 0],
     //     [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -61,6 +73,7 @@ export default function Board() {
         let cellRows = [];
         let cellCols = [];
         let cellBlocks = [];
+        let numbers = Object.fromEntries([...Array(9)].map((_, i) => [i + 1, 9]))
         for (let i = 0; i < 9; i++)
         {
             board[i] = []
@@ -74,6 +87,10 @@ export default function Board() {
                 board[i][j] = new BoardCell(samplePuzzle[i][j], i, j);
                 cellRows[i].push(board[i][j].value);
                 cellCols[j].push(board[i][j].value);
+
+                if (board[i][j].value !== null) {
+                    numbers[board[i][j].value] -= 1;
+                }
                 // cell blocks will be each element within i + 3, j+3 where i and j are modulus 3 ==0
                 const blockIndex = Math.floor(i/3) * 3 + Math.floor(j/3);
                 if (cellBlocks[blockIndex] === undefined){
@@ -86,6 +103,8 @@ export default function Board() {
         setCellCols(cellCols);
         setCellBlocks(cellBlocks);
         setBoard(board);
+        console.log(numbers);
+        setNumbersLeft(numbers);
         console.log(board);
     }
 
@@ -149,6 +168,9 @@ export default function Board() {
                 if (rowValues.includes(cellRows[r][i])) {
                     console.log(`cell row [${r},${i}] ${cellRows[r][i]} is invalid in ${cellRows[r]}`)
                     boardValid = false;
+                    board[r][i].isValid = false;
+                    console.log(board[i][j])
+                    setBoard(board[i][j]);
                     return;
                 }
                 rowValues.push(cellRows[r][i])
@@ -159,6 +181,9 @@ export default function Board() {
                 if (colValues.includes(cellCols[j][r])) {
                     console.log(`Current col values ${colValues}`)
                     console.log(`cell col [${j},${r}] ${cellCols[j][r]} is invalid in ${cellCols[r]}`)
+                    board[i][j].isValid = false;
+                    console.log(board[i][j])
+                    setBoard(board[i][j]);
                     boardValid = false;
                     return;
                 }
@@ -180,19 +205,28 @@ export default function Board() {
         return false;
     }
 
-    const handleCellChange = (rowIndex, colIndex, newValue) => {
-        console.log(`Setting cell from cell change of ${rowIndex} ${colIndex} with value ${newValue}`);
-        if (verifyCellValue(newValue)) {
+    const handleCellChange = (rowIndex, colIndex, currentValue) => {
+        let selectedNumber = parseInt(numberSelected);
+        if (selectedNumber === currentValue) {
+            return;
+        }
+        console.log(`Setting cell from cell change of ${rowIndex} ${colIndex} with value ${selectedNumber}`);
+        if (verifyCellValue(selectedNumber)) {
             const newCells = board.map(row => [...row])
-            newCells[rowIndex][colIndex].setValue(newValue);
-            cellRows[rowIndex][colIndex] = newValue;
-            cellCols[colIndex][rowIndex] = newValue;
+
+            newCells[rowIndex][colIndex].setValue(selectedNumber);
+            cellRows[rowIndex][colIndex] = selectedNumber;
+            cellCols[colIndex][rowIndex] = selectedNumber;
             const blockIndex = Math.floor(rowIndex/3) * 3 + Math.floor(colIndex/3);
             cellBlocks[blockIndex] = newCells;
             setBoard(newCells);
             setCellCols(cellCols);
             setCellRows(cellRows);
-
+            numbersLeft[selectedNumber] -= 1;
+            setNumbersLeft(numbersLeft);
+            if (numbersLeft[selectedNumber] === 0) {
+                setNumberSelected( null);
+            }
             validateBoard();
         }
     }
@@ -213,7 +247,7 @@ export default function Board() {
 
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+        <div className="min-h-screen min-w-screen flex items-center justify-center bg-base-200 p-4">
             <div className="card bg-base-100 shadow-xl w-full max-w-2xl">
                 {/* Header Section */}
                 <div className="card-body p-0">
@@ -225,7 +259,7 @@ export default function Board() {
                                     onClick={() => navigate('/')}
                                     className="btn btn-ghost btn-sm"
                                 >
-                                    <Home className="w-4 h-4" />
+                                    <Home className="w-4 h-4"/>
                                 </button>
                                 <h3 className="text-lg font-semibold">
                                     Sudoku <span className="text-primary">{difficulty}</span>
@@ -239,9 +273,9 @@ export default function Board() {
                                     className="btn btn-ghost btn-sm btn-square"
                                 >
                                     {isRunning ? (
-                                        <Pause className="w-4 h-4" />
+                                        <Pause className="w-4 h-4"/>
                                     ) : (
-                                        <Play className="w-4 h-4" />
+                                        <Play className="w-4 h-4"/>
                                     )}
                                 </button>
                                 <span className="font-mono text-sm">{elapsedTime}</span>
@@ -250,27 +284,41 @@ export default function Board() {
                     </div>
 
                     {/* Game Board Section */}
+                    {/*${cell.value && cell.isValid ? 'bg-green-200' : ''}*/}
                     <div className="p-4">
                         <div className="overflow-x-auto">
-                            <table className="w-full border-collapse bg-base-100">
+                            <table className="w-full h-full min-h-[400px] min-w-[300px] border-collapse bg-base-100">
                                 <tbody>
                                 {board?.map((row, rowIndex) => (
                                     <tr key={rowIndex}>
-                                        {row.map((cellValue, colIndex) => (
-                                            <td
-                                                key={`${rowIndex}-${colIndex}`}
-                                                className={`p-0 relative ${getCellBorderClasses(rowIndex, colIndex)}`}
-                                                style={{
-                                                    aspectRatio: '1/1',
-                                                    width: '11.11%' // 100% / 9 cells
-                                                }}
-                                            >
-                                                <Cell
-                                                    cell={board[rowIndex][colIndex]}
-                                                    onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                                />
-                                            </td>
-                                        ))}
+                                        {row.map((cellValue, colIndex) => {
+                                            const cell = board[rowIndex][colIndex];
+                                            return (
+                                                <td key={`${rowIndex}-${colIndex}`}
+                                                    className={`p-0 relative ${getCellBorderClasses(rowIndex, colIndex)}`}
+                                                    style={{
+                                                        aspectRatio: '1/1',
+                                                        width: '10%'
+                                                    }}
+                                                >
+
+                                                    <button
+                                                        value={cell}
+                                                        className={`
+                                                                w-full h-full text-center focus:outline-none 
+                                                                
+                                                                ${cell.value && !cell.isValid ? 'bg-red-200' : ''}
+                                                                ${cell.isLocked ? 'font-bold' : 'font-light'}
+                                                                ${cell.isLocked ? 'text-gray-600' : 'text-gray-500'}
+                                                            `}
+                                                        onClick={(e) => handleCellChange(rowIndex, colIndex, cell.value)}
+                                                        disabled={cell.isLocked}
+                                                    >
+                                                        {cell.value}
+                                                    </button>
+                                                </td>
+                                            );
+                                        })}
                                     </tr>
                                 ))}
                                 </tbody>
@@ -279,17 +327,30 @@ export default function Board() {
                     </div>
 
                     {/* Footer Section - Completion Message */}
-                    <div className="border-t border-base-300 p-4">
-                        <div className="min-h-[60px] flex justify-center">
-                            {boardComplete && (
-                                <div className="flex flex-col items-center gap-2 text-success">
-                                    <Cake className="w-6 h-6" />
-                                    <p className="text-center font-medium">
-                                        Congratulations! You solved it in {elapsedTime}! 🎉
-                                    </p>
-                                </div>
-                            )}
+                    <div className="min-h-[60px] flex justify-center">
+                        <div>
+                            {Object.entries(numbersLeft).map(([key, value]) => (
+                                key !== null && (
+                                    <div className="indicator p-1">
+                                        <span
+                                            className="indicator-item indicator-top indicator-center badge badge-primary">{value}</span>
+                                        <button key={key}
+                                                className={`btn btn-outline btn-secondary ${numberSelected === key ? 'btn-active' : ''}`}
+                                                disabled={value === 0} onClick={() => toggleSelect(key)}>{key}</button>
+                                    </div>
+                                )
+                            ))}
                         </div>
+                    </div>
+                    <div className="min-h-[60px] flex justify-center">
+                        {boardComplete && (
+                            <div className="flex flex-col items-center gap-2 text-success">
+                                <Cake className="w-6 h-6"/>
+                                <p className="text-center font-medium">
+                                    Congratulations {userName}! You solved it in {elapsedTime}! 🎉
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

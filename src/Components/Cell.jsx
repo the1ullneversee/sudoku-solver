@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from "react";
 
-export default function Cell({cell, onChange}) {
+export default function Cell({cell, onChange, onClick}) {
     const [value, setValue] = useState(cell.value);
     const [cellColour, setCellColour] = useState(cell.cellColour);
     const [isLocked, setIsLocked] = useState(cell.isLocked);
@@ -25,6 +25,13 @@ export default function Cell({cell, onChange}) {
         }
     };
 
+    const handleClick = (e) => {
+        console.log("clicked");
+        console.log(e.currentTarget.value);
+        console.log(e.currentTarget);
+        onClick(e.currentTarget.value);
+    }
+
     useEffect(() => {
 
         setValue(cell.value);
@@ -35,8 +42,9 @@ export default function Cell({cell, onChange}) {
 
     return (
         <div className="App">
-            <input className={`w-full h-[40px] text-center focus:outline-none focus:bg-primary/10 ${cell.isLocked ? 'bg-base-200 font-semibold' : 'bg-base-100'}`} value={value}
-                   onChange={!isLocked ? handleChange : null} readOnly={isLocked}/>
+            <button value={value} className={`w-full h-[40px] text-center focus:outline-none ${cell.isLocked ? 'bg-gray-200 font-light' : 'bg-gray-100'}`} onClick={handleClick} disabled={isLocked}>{value}</button>
+            {/*<input className={`w-full h-[40px] text-center focus:outline-none ${cell.isLocked ? 'bg-gray-200 font-light' : 'bg-gray-100'}`} value={value}*/}
+            {/*       onChange={!isLocked ? handleChange : null} readOnly={isLocked}/>*/}
         </div>
     )
 }
