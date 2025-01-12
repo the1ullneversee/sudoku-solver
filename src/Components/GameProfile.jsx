@@ -78,7 +78,6 @@ export default function GameProfile() {
                                 <option value="Expert 👑">👑 Expert</option>
                             </select>
                         </div>
-
                         <button
                             type="submit"
                             className="btn btn-primary w-full"

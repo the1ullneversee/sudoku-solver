@@ -1,6 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react';
 import Cell from './Cell';
-import {Play, Pause, Cake, Home} from "lucide-react";
+import {Play, Pause, Cake, Home, XCircle, Eraser } from "lucide-react";
 import {GameContext} from "@/Components/GameContext.jsx";
 import {useNavigate} from "react-router-dom";
 import {Solver} from "./Solver";
@@ -21,10 +21,13 @@ export default function Board() {
 
     const solver = new Solver();
 
-    const handleSolve = () => {
-        const solution = solver.solveBoard(board);
+    const handleSolve = async () => {
+        const solved = await solver.solveBoard(board, setBoard);
+        Object.keys(numbersLeft).forEach(key => numbersLeft[key] = 0);
     }
 
+    const [invalidCellsPresent, setInvalidCellsPresent] = useState(false);
+    const [isErasing, setIsErasing] = useState(false);
     const toggleSelect = (num) => {
         if (numberSelected !== num) {
             setNumberSelected(num);
@@ -46,22 +49,12 @@ export default function Board() {
         [0, 0, 0, 0, 8, 0, 0, 7, 9]
     ];
 
-    // const samplePuzzle = [
-    //     [5, 0, 4, 6, 7, 8, 9, 1, 2],
-    //     [6, 7, 2, 1, 9, 5, 3, 4, 8],
-    //     [0, 9, 8, 3, 4, 2, 5, 6, 7],
-    //     [0, 5, 9, 7, 6, 1, 4, 2, 3],
-    //     [4, 2, 6, 8, 5, 3, 7, 9, 1],
-    //     [7, 1, 3, 9, 2, 4, 8, 5, 6],
-    //     [9, 6, 1, 5, 3, 7, 2, 8, 4],
-    //     [2, 8, 7, 4, 1, 9, 6, 3, 5],
-    //     [3, 4, 5, 2, 8, 6, 1, 7, 9]
-    // ];
     class BoardCell {
         constructor(value, rowIndex, colIndex) {
             console.log(`Setting row ${rowIndex} ${colIndex} with value ${value}`);
             this.value = value === 0 ? null : value;
             let isLocked = this.value !== null;
+            this.isPreset = isLocked;
             this.cellColour = isLocked ?  '#f3f4f6': '#ffffff'
             this.colIndex = colIndex;
             this.rowIndex = rowIndex;
@@ -92,8 +85,8 @@ export default function Board() {
                     cellCols[j] = [];
                 }
                 board[i][j] = new BoardCell(samplePuzzle[i][j], i, j);
-                cellRows[i].push(board[i][j].value);
-                cellCols[j].push(board[i][j].value);
+                cellRows[i].push(board[i][j]);
+                cellCols[j].push(board[i][j]);
 
                 if (board[i][j].value !== null) {
                     numbers[board[i][j].value] -= 1;
@@ -110,7 +103,6 @@ export default function Board() {
         setCellCols(cellCols);
         setCellBlocks(cellBlocks);
         setBoard(board);
-        console.log(numbers);
         setNumbersLeft(numbers);
         console.log(board);
     }
@@ -152,55 +144,71 @@ export default function Board() {
 
     function validateBoard() {
         let isBoardComplete = true;
+        setBoardComplete(isBoardComplete);
         console.log(cellRows);
         for (let i = 0; i < 9; i++) {
             for (let j = 0; j < 9; j++) {
                 if (board[i][j].value === null) {
                     isBoardComplete = false;
+                    setBoardComplete(isBoardComplete);
                     return;
                 }
             }
         }
-
+        const size = 9;
         let boardValid = true;
-        // go over each row
 
+        // Helper function to mark cell as invalid and update board
+        const markCellInvalid = (row, col) => {
+            board[row][col].isValid = false;
+            setBoard([...board]);
+        };
 
-        for (let r = 0; r < 9; r++) {
-            // each index in the row
-            let rowValues = []
-            let colValues = []
-            for (let i = 0; i < 9; i++) {
-                console.log(`cell row [${r},${i}] ${cellRows[r][i]}`);
-                if (rowValues.includes(cellRows[r][i])) {
-                    console.log(`cell row [${r},${i}] ${cellRows[r][i]} is invalid in ${cellRows[r]}`)
-                    boardValid = false;
-                    board[r][i].isValid = false;
-                    console.log(board[i][j])
-                    setBoard(board[i][j]);
-                    return;
+        // Helper function to validate a sequence (row or column)
+        const validateSequence = (cells, type) => {
+            const values = [];
+
+            for (let i = 0; i < size; i++) {
+                const currentCell = cells[i];
+
+                if (!currentCell.value) continue; // Skip empty cells
+
+                if (values.some(cell => cell.value === currentCell.value)) {
+                    if (currentCell.isPreset) {
+                        // Find and mark all duplicate preset cells as invalid
+                        const duplicates = values.filter(cell => cell.value === currentCell.value);
+                        duplicates.forEach(dup => {
+                            markCellInvalid(dup.rowIndex, dup.colIndex);
+                            setInvalidCellsPresent(true);
+                            boardValid = false;
+                        });
+                    } else {
+                        // Mark the current non-preset duplicate as invalid
+                        const [row, col] = type === 'row' ?
+                            [cells[0].rowIndex, i] :
+                            [i, cells[0].colIndex];
+                        markCellInvalid(row, col);
+                        boardValid = false;
+                        setInvalidCellsPresent(true);
+                        return false; // Exit early for non-preset duplicates
+                    }
                 }
-                rowValues.push(cellRows[r][i])
+
+                values.push(currentCell);
             }
-            // each index in the column
-            for (let j = 0; j < 9; j++) {
-                console.log(`cell column [${j},${r}] ${cellCols[j][r]}`);
-                if (colValues.includes(cellCols[j][r])) {
-                    console.log(`Current col values ${colValues}`)
-                    console.log(`cell col [${j},${r}] ${cellCols[j][r]} is invalid in ${cellCols[r]}`)
-                    board[i][j].isValid = false;
-                    console.log(board[i][j])
-                    setBoard(board[i][j]);
-                    boardValid = false;
-                    return;
-                }
-                colValues.push(cellCols[j][r]);
-            }
+            return true;
+        };
+
+        // Validate all rows and columns
+        for (let i = 0; i < size; i++) {
+            const rowCells = board[i];
+            const colCells = board.map(row => row[i]);
+
+            if (!validateSequence(rowCells, 'row')) return false;
+            if (!validateSequence(colCells, 'column')) return false;
         }
-        console.log(`Board complete? ${isBoardComplete}`);
-        setBoardComplete(isBoardComplete);
-        setIsRunning(false);
 
+        return boardValid;
     }
 
     function verifyCellValue(value) {
@@ -212,29 +220,56 @@ export default function Board() {
         return false;
     }
 
+    function eraseBoardValue(rowIndex, colIndex) {
+        const newCells = board.map(row => [...row])
+        let previousCell = newCells[rowIndex][colIndex];
+        previousCell.isValid = true;
+        numbersLeft[previousCell.value] += 1;
+        previousCell.setValue(null);
+        newCells[rowIndex][colIndex] = previousCell
+        cellRows[rowIndex][colIndex] = previousCell
+        cellCols[colIndex][rowIndex] = previousCell
+        const blockIndex = Math.floor(rowIndex/3) * 3 + Math.floor(colIndex/3);
+        cellBlocks[blockIndex] = newCells;
+        setBoard(newCells);
+        setCellCols(cellCols);
+        setCellRows(cellRows);
+        validateBoard();
+    }
+
+    function setBoardWithValue(rowIndex, colIndex, newValue) {
+        const newCells = board.map(row => [...row])
+        let newCellValue = newValue === '' ? null : newValue;
+        newCells[rowIndex][colIndex].setValue(newCellValue);
+        cellRows[rowIndex][colIndex].setValue(newCellValue);
+        cellCols[colIndex][rowIndex].setValue(newCellValue);
+        const blockIndex = Math.floor(rowIndex/3) * 3 + Math.floor(colIndex/3);
+        cellBlocks[blockIndex] = newCells;
+        setBoard(newCells);
+        setCellCols(cellCols);
+        setCellRows(cellRows);
+        numbersLeft[newCellValue] -= 1;
+        setNumbersLeft(numbersLeft);
+        if (numbersLeft[newValue] === 0) {
+            setNumberSelected( null);
+        }
+        validateBoard();
+    }
+
     const handleCellChange = (rowIndex, colIndex, currentValue) => {
+        if (isErasing && currentValue) {
+            console.log(`erasing cell [${rowIndex}][${colIndex}]`);
+            eraseBoardValue(rowIndex, colIndex);
+            return;
+        }
+        console.log(`raw value from cell ${rowIndex}: ${currentValue}`);
         let selectedNumber = parseInt(numberSelected);
         if (selectedNumber === currentValue) {
             return;
         }
         console.log(`Setting cell from cell change of ${rowIndex} ${colIndex} with value ${selectedNumber}`);
         if (verifyCellValue(selectedNumber)) {
-            const newCells = board.map(row => [...row])
-
-            newCells[rowIndex][colIndex].setValue(selectedNumber);
-            cellRows[rowIndex][colIndex] = selectedNumber;
-            cellCols[colIndex][rowIndex] = selectedNumber;
-            const blockIndex = Math.floor(rowIndex/3) * 3 + Math.floor(colIndex/3);
-            cellBlocks[blockIndex] = newCells;
-            setBoard(newCells);
-            setCellCols(cellCols);
-            setCellRows(cellRows);
-            numbersLeft[selectedNumber] -= 1;
-            setNumbersLeft(numbersLeft);
-            if (numbersLeft[selectedNumber] === 0) {
-                setNumberSelected( null);
-            }
-            validateBoard();
+            setBoardWithValue(rowIndex, colIndex, selectedNumber);
         }
     }
     // Helper function to determine cell border classes
@@ -351,14 +386,32 @@ export default function Board() {
                         <div>
                             <button onClick={handleSolve}> Solve! </button>
                         </div>
+                        <button
+                            className={`btn ${isErasing ? 'btn-active' : ''}`}
+                            onClick={() => setIsErasing(!isErasing)}
+                        >
+                            Button
+                            <Eraser className="h-6 w-6"/>
+                        </button>
                     </div>
                     <div className="min-h-[60px] flex justify-center">
                         {boardComplete && (
-                            <div className="flex flex-col items-center gap-2 text-success">
-                                <Cake className="w-6 h-6"/>
-                                <p className="text-center font-medium">
-                                    Congratulations {userName}! You solved it in {elapsedTime}! 🎉
-                                </p>
+                            <div className="flex flex-col items-center gap-2">
+                                {!invalidCellsPresent ? (
+                                    <div className="flex flex-col items-center gap-2 text-success">
+                                        <Cake className="w-6 h-6"/>
+                                        <p className="text-center font-medium">
+                                            Congratulations {userName}! You solved it in {elapsedTime}! 🎉
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-destructive">
+                                        <XCircle className="w-6 h-6"/>
+                                        <p className="text-center font-medium">
+                                            Board complete but contains errors. Check highlighted cells.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
