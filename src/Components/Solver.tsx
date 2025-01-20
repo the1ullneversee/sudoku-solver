@@ -1,7 +1,6 @@
 import {BoardCell} from './Board.jsx'
 
 export class Solver {
-
     async solveBoard(board: BoardCell[][], updateUI: (board: BoardCell[][]) => void) {
         // solve board steps:
         // 1. Pick an initial solution
