@@ -4,6 +4,7 @@ export const GameContext = createContext();
 
 export const GameContextProvider = ({children}) => {
     const [userName, setUserName] = useState("");
+    const [statistics, setStatistics] = useState({});
     const [gameHistory, setGameHistory] = useState("");
     const [difficulty, setDifficulty] = useState(null);
     const [token, setToken] = useState("");
@@ -18,6 +19,8 @@ export const GameContextProvider = ({children}) => {
             setDifficulty,
             token,
             setToken,
+            statistics,
+            setStatistics,
         }}>
             {children}
         </GameContext.Provider>
