@@ -3,7 +3,8 @@ import Cell from './Cell';
 import {Play, Pause, Cake, Home, XCircle, Eraser } from "lucide-react";
 import {GameContext} from "@/Components/GameContext.jsx";
 import {useNavigate} from "react-router-dom";
-import {Solver} from "./Solver";
+import {CSPSolver} from "./CSPSolver";
+import {ILPSolver} from "./ILPSolver";
 
 export default function Board() {
     const {difficulty, userName} = useContext(GameContext);
@@ -19,10 +20,17 @@ export default function Board() {
     const [numbersLeft, setNumbersLeft] = useState({});
     const [numberSelected, setNumberSelected] = useState(new Set());
 
-    const solver = new Solver();
+    const CspSolver = new CSPSolver();
+    const IlpSolver = new ILPSolver();
 
     const handleSolve = async () => {
-        const solved = await solver.solveBoard(board, setBoard);
+        const solved = await IlpSolver.solveBoard(board, setBoard);
+        //const solved = await CSPSolver.solveBoard(board, setBoard);
+        Object.keys(numbersLeft).forEach(key => numbersLeft[key] = 0);
+    }
+
+    const handleSolveCSP = async () => {
+        const solved = await CspSolver.solveBoard(board, setBoard);
         Object.keys(numbersLeft).forEach(key => numbersLeft[key] = 0);
     }
 
@@ -37,17 +45,28 @@ export default function Board() {
         console.log(`number selected is ${num}`)
     };
 
+    // const samplePuzzle = [
+    //     [5, 3, 0, 0, 7, 0, 0, 0, 0],
+    //     [6, 0, 0, 1, 9, 5, 0, 0, 0],
+    //     [0, 9, 8, 0, 0, 0, 0, 6, 0],
+    //     [8, 0, 0, 0, 6, 0, 0, 0, 3],
+    //     [4, 0, 0, 8, 0, 3, 0, 0, 1],
+    //     [7, 0, 0, 0, 2, 0, 0, 0, 6],
+    //     [0, 6, 0, 0, 0, 0, 2, 8, 0],
+    //     [0, 0, 0, 4, 1, 9, 0, 0, 5],
+    //     [0, 0, 0, 0, 8, 0, 0, 7, 9]
+    // ];
     const samplePuzzle = [
-        [5, 3, 0, 0, 7, 0, 0, 0, 0],
-        [6, 0, 0, 1, 9, 5, 0, 0, 0],
-        [0, 9, 8, 0, 0, 0, 0, 6, 0],
-        [8, 0, 0, 0, 6, 0, 0, 0, 3],
-        [4, 0, 0, 8, 0, 3, 0, 0, 1],
-        [7, 0, 0, 0, 2, 0, 0, 0, 6],
-        [0, 6, 0, 0, 0, 0, 2, 8, 0],
-        [0, 0, 0, 4, 1, 9, 0, 0, 5],
-        [0, 0, 0, 0, 8, 0, 0, 7, 9]
-    ];
+        [4, 0, 0, 0, 0, 0, 8, 9, 0],
+        [8, 0, 0, 0, 0, 0, 0, 0, 0],
+        [3, 1, 5, 4, 9, 8, 0, 0, 0],
+        [0, 0, 8, 0, 5, 3, 4, 0, 0],
+        [0, 0, 0, 0, 0, 6, 0, 0, 8],
+        [2, 3, 0, 7, 8, 0, 0, 0, 9],
+        [1, 0, 3, 0, 6, 2, 0, 0, 0],
+        [0, 0, 0, 3, 0, 1, 5, 0, 2],
+        [0, 2, 4, 0, 0, 0, 0, 0, 3]
+      ];
 
     class BoardCell {
         constructor(value, rowIndex, colIndex) {
@@ -385,6 +404,7 @@ export default function Board() {
                         </div>
                         <div>
                             <button onClick={handleSolve}> Solve! </button>
+                            <button onClick={handleSolveCSP}> Solve CSP!</button>
                         </div>
                         <button
                             className={`btn ${isErasing ? 'btn-active' : ''}`}

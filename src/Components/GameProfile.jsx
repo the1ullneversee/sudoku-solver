@@ -49,13 +49,6 @@ export default function GameProfile() {
                     {/* Form Section */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <Login />
-                        <{userName === "" ? (
-
-                        ) : (
-                            <div className="text-center text-lg font-medium">
-                                Hi, {userName}!
-                            </div>
-                        )}>
 
                         <div className="form-control w-full">
                             <label className="label">
