@@ -1,218 +1,202 @@
 import { BoardCell } from './Board.jsx';
-//import * as GLPK from 'glpk.js';
 import GLPK from 'glpk.js';
 
 export class ILPSolver {
-  // Constraints from the mathematical formulation:
-  // 1. ∑(i=1 to 9) xijk = 1 for j,k = 1 to 9 (each row must have each digit)
-  // 2. ∑(j=1 to 9) xijk = 1 for i,k = 1 to 9 (each column must have each digit)
-  // 3. ∑(j=3p-2 to 3p) ∑(i=3q-2 to 3q) xijk = 1 for k = 1 to 9, p,q = 1 to 3 (each box has each digit)
-  // 4. ∑(k=1 to 9) xijk = 1 for i,j = 1 to 9 (each cell has exactly one value)
-  // 5. xijk = 1 for all (i,j,k) ∈ G = all the known cells
-  async solveBoard(
-    board: BoardCell[][],
-    updateUI: (board: BoardCell[][]) => void
-  ) {
-    // 1. init the GLPK solver
-    // 2. Define variables
-    // 3. Define constraints
-    // 4. Solve the problem.
-    // 5. Update the board with the solution
-    const glpk = await GLPK();
-    const lp = {
-      name: 'Sudoku-LP',
-      objective: {
-        direction: glpk.GLP_MAX,
-        name: 'obj',
-        vars: [],
-      },
-      subjectTo: [],
-      binaries: [],
-    };
-
-    // define 9x9x9 binary variables
-    // x_i_j_k = 1 if cell(i,j) has value k, otherwise 0
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        for (let k = 0; k <= 9; k++) {
-          const varName = `x_${i}_${j}_${k}`;
-          lp.objective.vars.push({
-            name: varName,
-            coef: 0,
-          });
-          // mark as a binary variables
-          lp.binaries.push(varName);
-        }
-      }
-    }
-
-    /*
-      Each GLPK constraint follows this patern:
-      { name: string, //id of the constraint
-        vars: Array<{name: str, coef: number}, // variables in this constraint
-        bnds: { type: GLP_FX | GLP_LO | GLP_UP, lb: number, ub: number} // bounds
-      }
-    */
-    // Cell Constraint
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        let vars = [];
-        for (let k = 1; k <= 9; k++) {
-          vars.push({
-            name: `x_${i}_${j}_${k}`,
-            coef: 1,
-          });
-        }
-        const cellConstraint = {
-          name: `cell_${i}_${j}`,
-          vars: vars,
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+    async solveBoard(
+        board: BoardCell[][],
+        updateUI: (board: BoardCell[][]) => void,
+        boardSize: number = 9, // Default to 9x9 Sudoku
+        onProgress?: (info: { iteration: number; objective: number; status: number; primal_feasible: boolean; dual_feasible: boolean }) => void // Callback for progress updates
+    ) {
+        const glpk = await GLPK();
+        const lp = {
+            name: 'Sudoku-LP',
+            objective: {
+                direction: glpk.GLP_MAX,
+                name: 'obj',
+                vars: [],
+            },
+            subjectTo: [],
+            binaries: [],
         };
 
-        lp.subjectTo.push(cellConstraint);
-      }
-    }
+        const blockSize = Math.sqrt(boardSize); // Calculate block size dynamically
 
-    // Row constraint
-    for (let j = 0; j < 9; j++) {
-      // for each row J
-      for (let k = 1; k <= 9; k++) {
-        // For each value K
-        let vars = [];
-        for (let i = 0; i < 9; i++) {
-          // Sum across all columns i
-          vars.push({
-            name: `x_${i}_${j}_${k}`,
-            coef: 1,
-          });
-        }
-        const rowConstraint = {
-          name: `row_${j}_value_${k}`,
-          vars: vars,
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        };
-        lp.subjectTo.push(rowConstraint);
-      }
-    }
-
-    // Column Constraint
-    for (let i = 0; i < 9; i++) {
-      // for each row i
-      for (let k = 1; k <= 9; k++) {
-        // for each value K
-        let vars = [];
-        for (let j = 0; j < 9; j++) {
-          // Sum across all columns j
-          vars.push({
-            name: `x_${i}_${j}_${k}`,
-            coef: 1,
-          });
-        }
-        // Add this constraint object
-        const colConstraint = {
-          name: `col_${i}_value_${k}`,
-          vars: vars,
-          bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-        };
-        lp.subjectTo.push(colConstraint);
-      }
-    }
-
-    // Each block constraint
-    for (let blockRow = 0; blockRow < 3; blockRow++) {
-      for (let blockCol = 0; blockCol < 3; blockCol++) {
-        for (let k = 1; k <= 9; k++) {
-          let vars = [];
-
-          // iterate through all cells in this 3x3 block
-          for (let r = 0; r < 3; r++) {
-            for (let c = 0; c < 3; c++) {
-              // cal board coordinates
-              let i = blockRow * 3 + r;
-              let j = blockCol * 3 + c;
-
-              vars.push({
-                name: `x_${i}_${j}_${k}`,
-                coef: 1,
-              });
+        // Define binary variables
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; j < boardSize; j++) {
+                for (let k = 1; k <= boardSize; k++) {
+                    const varName = `x_${i}_${j}_${k}`;
+                    lp.objective.vars.push({
+                        name: varName,
+                        coef: 0,
+                    });
+                    lp.binaries.push(varName);
+                }
             }
-          }
-
-          const blkConstraint = {
-            name: `block_${blockRow}_${blockCol}_value_${k}`,
-            vars: vars,
-            bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-          };
-
-          lp.subjectTo.push(blkConstraint);
         }
-      }
-    }
 
-    // respective initial values
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        // check if the cell has an initial value
-        if (board[i][j].value !== null) {
-          // get the known vlaue for this cell
-          const k = board[i][j].value;
-
-          // create a constraint that forces x_i_j_k = 1
-          const initialConstraint = {
-            name: `initial_${i}_${j}`,
-            vars: [
-              {
-                name: `x_${i}_${j}_${k}`,
-                coef: 1,
-              },
-            ],
-            bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
-          };
-
-          lp.subjectTo.push(initialConstraint);
+        // Cell Constraint
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; j < boardSize; j++) {
+                let vars = [];
+                for (let k = 1; k <= boardSize; k++) {
+                    vars.push({
+                        name: `x_${i}_${j}_${k}`,
+                        coef: 1,
+                    });
+                }
+                const cellConstraint = {
+                    name: `cell_${i}_${j}`,
+                    vars: vars,
+                    bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+                };
+                lp.subjectTo.push(cellConstraint);
+            }
         }
-      }
-    }
 
-    lp.objective = {
-      direction: glpk.GLP_MAX, // OR GLP_MIN, doesn't matter
-      name: 'obj',
-      vars: [{ name: `x_0_0_1`, coef: 0 }],
-    };
-
-    try {
-      const result = await glpk.solve(lp);
-
-      if (result.result.status === glpk.GLP_OPT) {
-        console.log('solution found');
-        return this.extractSolution(board, result.result.vars, updateUI);
-      } else {
-        console.error('No solution found, Status', result.result.status);
-        return false;
-      }
-    } catch (error) {
-      console.error('Error solving ILP model', error);
-      return false;
-    }
-  }
-
-  extractSolution(board, solution, updateUI) {
-    // For each cell, find which variable is set to 1
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        for (let k = 1; k <= 9; k++) {
-          const varName = `x_${i}_${j}_${k}`;
-          if (solution[varName] === 1) {
-            board[i][j].value = k;
-            break; // No need to check further values
-          }
+        // Row Constraint
+        for (let j = 0; j < boardSize; j++) {
+            for (let k = 1; k <= boardSize; k++) {
+                let vars = [];
+                for (let i = 0; i < boardSize; i++) {
+                    vars.push({
+                        name: `x_${i}_${j}_${k}`,
+                        coef: 1,
+                    });
+                }
+                const rowConstraint = {
+                    name: `row_${j}_value_${k}`,
+                    vars: vars,
+                    bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+                };
+                lp.subjectTo.push(rowConstraint);
+            }
         }
-      }
+
+        // Column Constraint
+        for (let i = 0; i < boardSize; i++) {
+            for (let k = 1; k <= boardSize; k++) {
+                let vars = [];
+                for (let j = 0; j < boardSize; j++) {
+                    vars.push({
+                        name: `x_${i}_${j}_${k}`,
+                        coef: 1,
+                    });
+                }
+                const colConstraint = {
+                    name: `col_${i}_value_${k}`,
+                    vars: vars,
+                    bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+                };
+                lp.subjectTo.push(colConstraint);
+            }
+        }
+
+        // Block Constraint
+        for (let blockRow = 0; blockSize; blockRow++) {
+            for (let blockCol = 0; blockSize; blockCol++) {
+                for (let k = 1; k <= boardSize; k++) {
+                    let vars = [];
+                    for (let r = 0; blockSize; r++) {
+                        for (let c = 0; blockSize; c++) {
+                            let i = blockRow * blockSize + r;
+                            let j = blockCol * blockSize + c;
+                            vars.push({
+                                name: `x_${i}_${j}_${k}`,
+                                coef: 1,
+                            });
+                        }
+                    }
+                    const blkConstraint = {
+                        name: `block_${blockRow}_${blockCol}_value_${k}`,
+                        vars: vars,
+                        bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+                    };
+                    lp.subjectTo.push(blkConstraint);
+                }
+            }
+        }
+
+        // Initial Values Constraint
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; boardSize; j++) {
+                if (board[i][j].value !== null) {
+                    const k = board[i][j].value;
+                    const initialConstraint = {
+                        name: `initial_${i}_${j}`,
+                        vars: [
+                            {
+                                name: `x_${i}_${j}_${k}`,
+                                coef: 1,
+                            },
+                        ],
+                        bnds: { type: glpk.GLP_FX, ub: 1.0, lb: 1.0 },
+                    };
+                    lp.subjectTo.push(initialConstraint);
+                }
+            }
+        }
+
+        // Add a callback to track progress
+        const callback = (progress) => {
+            if (onProgress) {
+                onProgress({
+                    iteration: progress.iter,
+                    objective: progress.obj,
+                    status: progress.status, // Solver status
+                    primal_feasible: progress.primal_feasible, // Primal feasibility
+                    dual_feasible: progress.dual_feasible, // Dual feasibility
+                });
+            }
+        };
+
+        // Add to ILPSolver.solveBoard method
+        const options = {
+            cb: callback,
+            timeout: 60000, // 60 second timeout
+            msglev: glpk.GLP_MSG_ALL, // More detailed messages
+            presol: true, // Use presolve to simplify the problem
+            scaling: 3, // Advanced scaling
+            tmlim: 60 // Timeout in seconds
+        };
+
+        try {
+            const result = await glpk.solve(lp, options);
+
+            if (result.result.status === glpk.GLP_OPT) {
+                console.log('Solution found');
+                return this.extractSolution(board, result.result.vars, updateUI, boardSize);
+            } else {
+                console.error('No solution found, Status', result.result.status);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error solving ILP model', error);
+            return false;
+        }
     }
 
-    // Update the UI
-    updateUI([...board]);
+    extractSolution(board, solution, updateUI, boardSize) {
+        for (let i = 0; i < boardSize; i++) {
+            for (let j = 0; i < boardSize; j++) {
+                for (let k = 1; k <= boardSize; k++) {
+                    const varName = `x_${i}_${j}_${k}`;
+                    if (solution[varName] === 1) {
+                        board[i][j].value = k;
+                        break;
+                    }
+                }
+            }
+        }
+        updateUI([...board]);
 
-    return true;
-  }
+        // Print the board to the console in a readable format
+        console.log("Solved Sudoku Board:");
+        board.forEach(row => {
+            console.log(row.map(cell => cell.value || '.').join(' '));
+        });
+
+        return true;
+    }
 }

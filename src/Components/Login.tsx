@@ -1,10 +1,24 @@
-import React, {useState, useContext} from "react";
-import {GameContext} from "@/Components/GameContext.jsx";
-export default function Login() {
+import React, { useState, useContext } from "react";
+import { GameContext } from "@/Components/GameContext.jsx";
 
-    const {userName, setUserName, difficulty, setDifficulty, setToken} = useContext(GameContext);
+export default function Login() {
+    const { userName, setUserName, difficulty, setDifficulty, setToken, setBoardSize } = useContext(GameContext);
     const [localUserName, setLocalUserName] = useState(userName);
     const [localPassword, setLocalPassword] = useState("");
+    const [localBoardSize, setLocalBoardSize] = useState(9); // Default to 9x9
+    const [localDifficulty, setLocalDifficulty] = useState(difficulty || "Medium"); // Default to Medium
+
+    const handleBoardSizeChange = (e) => {
+        const size = parseInt(e.target.value, 10);
+        setLocalBoardSize(size);
+        setBoardSize(size);
+    };
+
+    const handleDifficultyChange = (e) => {
+        const selectedDifficulty = e.target.value;
+        setLocalDifficulty(selectedDifficulty);
+        setDifficulty(selectedDifficulty);
+    };
 
     async function handleLogin(username, password) {
         try {
@@ -37,11 +51,11 @@ export default function Login() {
     }
 
     const PresentLogin = () => (
-            <div>
+        <div>
             <label className="label">
                 <span className="label-text">Username</span>
             </label>
-                <input
+            <input
                 type="text"
                 className="input input-bordered w-full"
                 placeholder="Your username"
@@ -54,23 +68,51 @@ export default function Login() {
             <input
                 type="text"
                 className="input input-bordered w-full"
-                placeholder="Your username"
+                placeholder="Your password"
                 value={localPassword}
                 onChange={(e) => setLocalPassword(e.target.value)}
             />
-            <button onClick={handleLogin}>Login</button>`
+            <label className="label">
+                <span className="label-text">Board Size</span>
+            </label>
+            <select
+                className="select select-bordered w-full"
+                value={localBoardSize}
+                onChange={handleBoardSizeChange}
+            >
+                <option value={4}>4x4</option>
+                <option value={9}>9x9</option>
+                <option value={16}>16x16</option>
+                <option value={25}>25x25</option>
+            </select>
+            <label className="label">
+                <span className="label-text">Difficulty</span>
+            </label>
+            <select
+                className="select select-bordered w-full"
+                value={localDifficulty}
+                onChange={handleDifficultyChange}
+            >
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+            <p className="text-sm text-gray-500 mt-2">
+                Note: The generated Sudoku board will be saved to a file for your reference.
+            </p>
+            <button onClick={handleLogin}>Login</button>
         </div>
     );
 
     return (
         <div className="max-w-md mx-auto p-6">
             {userName === "" ? (
-                <PresentLogin/>
+                <PresentLogin />
             ) : (
                 <div className="text-center text-lg font-medium">
                     Hi, {userName}!
                 </div>
             )}
         </div>
-    )
+    );
 }

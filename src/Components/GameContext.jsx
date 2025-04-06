@@ -8,6 +8,7 @@ export const GameContextProvider = ({children}) => {
     const [gameHistory, setGameHistory] = useState("");
     const [difficulty, setDifficulty] = useState(null);
     const [token, setToken] = useState("");
+    const [boardSize, setBoardSize] = useState(9); // Default to 9x9
 
     return (
         <GameContext.Provider value={{
@@ -21,6 +22,8 @@ export const GameContextProvider = ({children}) => {
             setToken,
             statistics,
             setStatistics,
+            boardSize,
+            setBoardSize,
         }}>
             {children}
         </GameContext.Provider>
